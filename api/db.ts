@@ -14,13 +14,28 @@ const url = process.env.DATABASE_URL
 
 export const dbAvailable = !!url
 
+const isInternal = !!url && (url.includes('.railway.internal') || url.includes('localhost') || url.includes('127.0.0.1'))
+
+const sslOption =
+  process.env.PGSSL === 'true'
+    ? { rejectUnauthorized: false }
+    : process.env.PGSSL === 'false' || isInternal
+      ? undefined
+      : { rejectUnauthorized: false }
+
 const pool = url
   ? new pg.Pool({
       connectionString: url,
-      ssl: process.env.PGSSL === 'false' ? undefined : { rejectUnauthorized: false },
+      ssl: sslOption,
       max: 5,
     })
   : null
+
+if (pool) {
+  pool.on('error', (err) => {
+    console.error('[db] unexpected pool error:', err)
+  })
+}
 
 export const db = pool ? drizzle(pool) : null
 
@@ -29,34 +44,38 @@ export async function initDb(): Promise<void> {
     console.warn('[db] DATABASE_URL not set — running without persistence')
     return
   }
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS kv (
-      key text PRIMARY KEY,
-      value jsonb NOT NULL,
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE IF NOT EXISTS signals (
-      id text PRIMARY KEY,
-      symbol text NOT NULL,
-      base text NOT NULL,
-      exchange text NOT NULL,
-      market text NOT NULL,
-      timeframe text NOT NULL,
-      strength text NOT NULL,
-      score integer NOT NULL,
-      price real NOT NULL,
-      rsi real,
-      rel_vol real,
-      funding_rate real,
-      oi_change_pct real,
-      parts jsonb NOT NULL,
-      webhook_sent boolean NOT NULL DEFAULT false,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE INDEX IF NOT EXISTS signals_created_idx ON signals (created_at);
-    CREATE INDEX IF NOT EXISTS signals_base_idx ON signals (base);
-  `)
-  console.log('[db] connected, tables ready')
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS kv (
+        key text PRIMARY KEY,
+        value jsonb NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE TABLE IF NOT EXISTS signals (
+        id text PRIMARY KEY,
+        symbol text NOT NULL,
+        base text NOT NULL,
+        exchange text NOT NULL,
+        market text NOT NULL,
+        timeframe text NOT NULL,
+        strength text NOT NULL,
+        score integer NOT NULL,
+        price real NOT NULL,
+        rsi real,
+        rel_vol real,
+        funding_rate real,
+        oi_change_pct real,
+        parts jsonb NOT NULL,
+        webhook_sent boolean NOT NULL DEFAULT false,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS signals_created_idx ON signals (created_at);
+      CREATE INDEX IF NOT EXISTS signals_base_idx ON signals (base);
+    `)
+    console.log('[db] connected, tables ready')
+  } catch (err) {
+    console.error('[db] failed to initialize database tables:', err)
+  }
 }
 
 // ---------------- kv helpers ----------------
