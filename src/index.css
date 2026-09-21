@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
+    --card: 240 6% 8%;
+    --card-foreground: 0 0% 96%;
+    --popover: 240 6% 7%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 163 100% 42.5%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 240 4% 12%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 240 4% 12%;
+    --muted-foreground: 240 5% 62%;
+    --accent: 240 4% 14%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 100% 65%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 14%;
+    --input: 240 4% 16%;
+    --ring: 163 100% 42.5%;
+    --radius: 0.5rem;
+    --sidebar-background: 240 6% 7%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 163 100% 42.5%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 240 4% 12%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 240 4% 14%;
+    --sidebar-ring: 163 100% 42.5%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'IBM Plex Sans Arabic', -apple-system, 'Segoe UI', Tahoma, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .font-num {
+    font-family: 'JetBrains Mono', 'Space Grotesk', Menlo, Consolas, monospace;
+    font-feature-settings: 'tnum';
+  }
+  .font-display {
+    font-family: 'Space Grotesk', 'IBM Plex Sans Arabic', sans-serif;
+  }
+}
+
+/* thin dark scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* mint range slider */
+.slider-mint {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #27272a;
+  outline: none;
+}
+.slider-mint::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #00d9a3;
+  border: 2px solid #0a0a0a;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(0, 217, 163, 0.5);
+}
+.slider-mint::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #00d9a3;
+  border: 2px solid #0a0a0a;
+  cursor: pointer;
+}
