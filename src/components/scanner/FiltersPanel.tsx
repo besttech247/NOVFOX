@@ -1,4 +1,4 @@
-import { RotateCcw, SlidersHorizontal, X } from 'lucide-react'
+import { Lock, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
 import type { DisplayFilters } from '@/types'
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   onChange: (patch: Partial<DisplayFilters>) => void
   onReset: () => void
   onClose: () => void
+  isLocked?: boolean
 }
 
 function Row({ label, children, sub }: { label: string; children: React.ReactNode; sub?: string }) {
@@ -22,14 +23,17 @@ function Row({ label, children, sub }: { label: string; children: React.ReactNod
   )
 }
 
-function Switch({ on, onClick, title }: { on: boolean; onClick: () => void; title?: string }) {
+function Switch({ on, onClick, title, disabled }: { on: boolean; onClick: () => void; title?: string; disabled?: boolean }) {
   return (
     <button
       role="switch"
       aria-checked={on}
       title={title}
+      disabled={disabled}
       onClick={onClick}
-      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${on ? 'bg-[#00d9a3]' : 'bg-zinc-700'}`}
+      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+        on ? 'bg-[#00d9a3]' : 'bg-zinc-700'
+      }`}
     >
       <span
         className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${on ? 'start-[18px]' : 'start-0.5'}`}
@@ -44,6 +48,7 @@ function Slider({
   max,
   step,
   unit,
+  disabled,
   onChange,
 }: {
   value: number
@@ -51,6 +56,7 @@ function Slider({
   max: number
   step: number
   unit?: string
+  disabled?: boolean
   onChange: (v: number) => void
 }) {
   return (
@@ -61,8 +67,9 @@ function Slider({
         max={max}
         step={step}
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="slider-mint w-28"
+        className="slider-mint w-28 disabled:cursor-not-allowed disabled:opacity-40"
         dir="ltr"
       />
       <span className="font-num w-10 text-end text-xs tabular-nums text-[#00d9a3]" dir="ltr">
@@ -73,7 +80,7 @@ function Slider({
   )
 }
 
-export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, onReset, onClose }: Props) {
+export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, onReset, onClose, isLocked = false }: Props) {
   const f = filters
 
   const isFiltered =
@@ -98,7 +105,7 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
           <h3 className="text-sm font-semibold text-zinc-200">فلاتر العرض</h3>
         </div>
         <div className="flex items-center gap-2">
-          {isFiltered && (
+          {isFiltered && !isLocked && (
             <button
               onClick={onReset}
               className="flex items-center gap-1 text-[11px] text-zinc-400 transition-colors hover:text-[#00d9a3]"
@@ -118,6 +125,14 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
         </div>
       </div>
 
+      {/* Lock banner if locked */}
+      {isLocked && (
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+          <Lock size={14} className="shrink-0 text-amber-400" />
+          <span>القفل مفعّل — جميع الفلاتر للقراءة فقط لمنع التعديل العرضي.</span>
+        </div>
+      )}
+
       <div className="divide-y divide-zinc-800/70">
         {/* Section 1: TradFi & Commodities */}
         <div className="py-1">
@@ -126,6 +141,7 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
             sub="عرض العملات الرقمية فقط (كريبتو)"
           >
             <Switch
+              disabled={isLocked}
               on={hideTradFi}
               onClick={() => onTradFiChange(!hideTradFi)}
             />
@@ -136,18 +152,21 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
             <div className="me-2 space-y-0.5 border-s-2 border-zinc-800 ps-3">
               <Row label="إخفاء المعادن (ذهب، فضة...)">
                 <Switch
+                  disabled={isLocked}
                   on={f.hideMetals}
                   onClick={() => onChange({ hideMetals: !f.hideMetals })}
                 />
               </Row>
               <Row label="إخفاء النفط والطاقة (برنت، WTI...)">
                 <Switch
+                  disabled={isLocked}
                   on={f.hideOil}
                   onClick={() => onChange({ hideOil: !f.hideOil })}
                 />
               </Row>
               <Row label="إخفاء الأسهم والمؤشرات (NVDA, TSLA...)">
                 <Switch
+                  disabled={isLocked}
                   on={f.hideStocks}
                   onClick={() => onChange({ hideStocks: !f.hideStocks })}
                 />
@@ -163,6 +182,7 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
             sub="AAVE, COMP, MKR, RDNT, XVS, MORPHO..."
           >
             <Switch
+              disabled={isLocked}
               on={f.hideLending}
               onClick={() => onChange({ hideLending: !f.hideLending })}
             />
@@ -172,27 +192,30 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
             sub="RLB, FUN, WIN, SHFL, SX, DICE..."
           >
             <Switch
+              disabled={isLocked}
               on={f.hideGambling}
               onClick={() => onChange({ hideGambling: !f.hideGambling })}
             />
           </Row>
         </div>
 
-        {/* Section 2: Strength Filter */}
+        {/* Section 3: Strength Filter */}
         <div className="py-1">
           <Row label="قوة الإشارة">
             <div className="flex overflow-hidden rounded border border-zinc-800" dir="rtl">
               <button
+                disabled={isLocked}
                 onClick={() => onChange({ strength: 'all' })}
-                className={`px-3 py-1 text-xs transition-colors ${
+                className={`px-3 py-1 text-xs transition-colors disabled:opacity-40 ${
                   f.strength === 'all' ? 'bg-[#00d9a3] font-bold text-black' : 'text-zinc-400 hover:bg-zinc-800'
                 }`}
               >
                 الكل
               </button>
               <button
+                disabled={isLocked}
                 onClick={() => onChange({ strength: 'strong' })}
-                className={`px-3 py-1 text-xs transition-colors ${
+                className={`px-3 py-1 text-xs transition-colors disabled:opacity-40 ${
                   f.strength === 'strong' ? 'bg-[#00d9a3] font-bold text-black' : 'text-zinc-400 hover:bg-zinc-800'
                 }`}
               >
@@ -202,29 +225,32 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
           </Row>
         </div>
 
-        {/* Section 3: Signal Direction (Long / Short) */}
+        {/* Section 4: Signal Direction (Long / Short) */}
         <div className="py-1">
           <Row label="اتجاه الإشارة">
             <div className="flex overflow-hidden rounded border border-zinc-800" dir="rtl">
               <button
+                disabled={isLocked}
                 onClick={() => onChange({ direction: 'all' })}
-                className={`px-2.5 py-1 text-xs transition-colors ${
+                className={`px-2.5 py-1 text-xs transition-colors disabled:opacity-40 ${
                   f.direction === 'all' ? 'bg-[#00d9a3] font-bold text-black' : 'text-zinc-400 hover:bg-zinc-800'
                 }`}
               >
                 الكل
               </button>
               <button
+                disabled={isLocked}
                 onClick={() => onChange({ direction: 'long' })}
-                className={`px-2.5 py-1 text-xs transition-colors ${
+                className={`px-2.5 py-1 text-xs transition-colors disabled:opacity-40 ${
                   f.direction === 'long' ? 'bg-emerald-500 font-bold text-black' : 'text-zinc-400 hover:bg-zinc-800'
                 }`}
               >
                 شراء (Long)
               </button>
               <button
+                disabled={isLocked}
                 onClick={() => onChange({ direction: 'short' })}
-                className={`px-2.5 py-1 text-xs transition-colors ${
+                className={`px-2.5 py-1 text-xs transition-colors disabled:opacity-40 ${
                   f.direction === 'short' ? 'bg-rose-500 font-bold text-white' : 'text-zinc-400 hover:bg-zinc-800'
                 }`}
               >
@@ -234,7 +260,7 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
           </Row>
         </div>
 
-        {/* Section 4: Minimum Score */}
+        {/* Section 5: Minimum Score */}
         <div className="py-1">
           <Row label="الحد الأدنى للنقاط" sub="إخفاء العملات ذات النقاط الأقل">
             <Slider
@@ -242,6 +268,7 @@ export function FiltersPanel({ hideTradFi, onTradFiChange, filters, onChange, on
               min={0}
               max={85}
               step={5}
+              disabled={isLocked}
               onChange={(v) => onChange({ minScore: v })}
             />
           </Row>

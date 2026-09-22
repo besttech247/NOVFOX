@@ -12,6 +12,7 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { initDb } from './db'
+import { initAuth } from './auth'
 import { engine } from './engine'
 import { api } from './routes'
 
@@ -31,6 +32,7 @@ if (fs.existsSync(distDir)) {
 
 async function main() {
   await initDb()
+  await initAuth()
   await engine.init() // restores persisted state; auto-resumes if it was running
 
   const port = Number(process.env.PORT) || 3001

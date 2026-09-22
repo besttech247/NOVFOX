@@ -70,11 +70,41 @@ export function recordLogin(ip: string, ok: boolean): void {
   attempts.set(ip, rec)
 }
 
+let customPassword: string | null = null
+
+export function setCustomPassword(newPass: string): void {
+  customPassword = newPass
+}
+
+export function getActivePassword(): string {
+  return customPassword || password
+}
+
 export function checkPassword(candidate: unknown): boolean {
   if (typeof candidate !== 'string') return false
+  const active = getActivePassword()
   const a = Buffer.from(candidate)
-  const b = Buffer.from(password)
+  const b = Buffer.from(active)
   return a.length === b.length && crypto.timingSafeEqual(a, b)
+}
+
+export async function updatePassword(newPassword: string): Promise<void> {
+  setCustomPassword(newPassword)
+  const { kvSet } = await import('./db')
+  await kvSet('admin:password', newPassword)
+}
+
+export async function initAuth(): Promise<void> {
+  try {
+    const { kvGet } = await import('./db')
+    const saved = await kvGet<string>('admin:password')
+    if (saved && typeof saved === 'string') {
+      customPassword = saved
+      console.log('[auth] restored custom admin password from db')
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function issueSession(c: Context): void {

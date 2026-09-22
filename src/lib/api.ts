@@ -40,6 +40,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   login: (password: string) => apiFetch<{ ok: true }>('/api/login', { method: 'POST', body: JSON.stringify({ password }) }),
   logout: () => apiFetch<{ ok: true }>('/api/logout', { method: 'POST' }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiFetch<{ ok: true }>('/api/auth/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
   me: () => apiFetch<{ ok: true }>('/api/me'),
   state: () => apiFetch<EngineSnapshot>('/api/state'),
   control: (action: 'start' | 'stop') =>

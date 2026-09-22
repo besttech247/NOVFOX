@@ -12,6 +12,7 @@ import {
   loginThrottle,
   recordLogin,
   requireAuth,
+  updatePassword,
 } from './auth'
 import { engine } from './engine'
 import { dbAvailable, querySignals, signalStats } from './db'
@@ -59,11 +60,29 @@ api.use('/state', requireAuth)
 api.use('/control', requireAuth)
 api.use('/settings', requireAuth)
 api.use('/config', requireAuth)
+api.use('/auth/*', requireAuth)
 api.use('/stream', requireAuth)
 api.use('/history/*', requireAuth)
 api.use('/webhook/*', requireAuth)
 api.use('/econ/*', requireAuth)
 api.use('/icons', requireAuth)
+
+api.post('/auth/password', async (c) => {
+  let body: { currentPassword?: string; newPassword?: string }
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json({ error: 'bad_request' }, 400)
+  }
+  if (!body.currentPassword || !checkPassword(body.currentPassword)) {
+    return c.json({ error: 'wrong_current_password' }, 401)
+  }
+  if (!body.newPassword || typeof body.newPassword !== 'string' || body.newPassword.trim().length < 4) {
+    return c.json({ error: 'password_too_short' }, 400)
+  }
+  await updatePassword(body.newPassword.trim())
+  return c.json({ ok: true })
+})
 
 api.post('/webhook/test', async (c) => {
   if (!engine.settings.webhookUrl.trim()) return c.json({ error: 'no_webhook' }, 400)

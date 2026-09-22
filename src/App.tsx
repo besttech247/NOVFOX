@@ -9,7 +9,7 @@ import { compareScans, SignalTable, SORT_KEYS, type SortKey } from '@/components
 import { SignalCards } from '@/components/scanner/SignalCards'
 import { AlertsFeed } from '@/components/scanner/AlertsFeed'
 import { StatsBar } from '@/components/scanner/StatsBar'
-import { SettingsPanel } from '@/components/scanner/SettingsPanel'
+import { SettingsPanel, type AppBranding } from '@/components/scanner/SettingsPanel'
 import { FiltersPanel } from '@/components/scanner/FiltersPanel'
 import { DEFAULT_DISPLAY_FILTERS, type DisplayFilters } from '@/types'
 import { BacktestView } from '@/components/scanner/BacktestView'
@@ -17,8 +17,9 @@ import { JournalView } from '@/components/scanner/JournalView'
 import { HistoryView } from '@/components/scanner/HistoryView'
 import { EconView } from '@/components/scanner/EconView'
 import { ExchangeIcon } from '@/components/ExchangeIcon'
+import { NovfoxLogo } from '@/components/NovfoxLogo'
 import { isCommodityOrStock, isGamblingToken, isLendingToken, isMetal, isOil, isStockOrIndex } from '@/lib/tradfi'
-import { ArrowDown, ArrowUp, BookOpen, CalendarClock, FlaskConical, History, LayoutList, Loader2, LogOut, Power, Radar, RefreshCcw, Settings2, SlidersHorizontal, Volume2, VolumeX } from 'lucide-react'
+import { ArrowDown, ArrowUp, BookOpen, CalendarClock, FlaskConical, History, LayoutList, Loader2, Lock, LogOut, Power, Radar, RefreshCcw, Settings2, SlidersHorizontal, Unlock, Volume2, VolumeX } from 'lucide-react'
 
 type View = 'live' | 'econ' | 'backtest' | 'journal' | 'history'
 
@@ -79,6 +80,44 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   } = useScanner()
   const [showSettings, setShowSettings] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [isLocked, setIsLocked] = useState<boolean>(() => localStorage.getItem('scalp:locked') === 'true')
+  const toggleLock = useCallback(() => {
+    setIsLocked((v) => {
+      const next = !v
+      try {
+        localStorage.setItem('scalp:locked', String(next))
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }, [])
+
+  const [branding, setBranding] = useState<AppBranding>(() => {
+    try {
+      const saved = localStorage.getItem('scalp:branding')
+      if (saved) return JSON.parse(saved)
+    } catch {
+      /* ignore */
+    }
+    return { appName: 'NOVFOX', logoVariant: 'fox' }
+  })
+
+  const handleBrandingChange = useCallback((patch: Partial<AppBranding>) => {
+    setBranding((prev) => {
+      const next = { ...prev, ...patch }
+      try {
+        localStorage.setItem('scalp:branding', JSON.stringify(next))
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    document.title = `${branding.appName} — سكانر السكالبنغ اللحظي`
+  }, [branding.appName])
   const [filters, setFilters] = useState<DisplayFilters>(() => {
     try {
       const saved = localStorage.getItem('scalp:filters')
@@ -286,15 +325,22 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4 sm:py-3">
           {/* brand */}
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#00d9a3]/10 text-[#00d9a3] sm:h-8 sm:w-8">
-              <Radar size={16} />
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d9a3]/10 p-1 text-[#00d9a3] shadow-[0_0_15px_rgba(0,217,163,0.15)] ring-1 ring-[#00d9a3]/30 sm:h-9 sm:w-9">
+              <NovfoxLogo variant={branding.logoVariant} customUrl={branding.customLogoUrl} size={22} />
             </span>
             <div>
-              <h1 className="font-display text-sm font-bold leading-tight tracking-tight text-white sm:text-[15px]">
-                سكانر السكالبنغ
-              </h1>
-              <p className="hidden text-[10px] leading-tight text-zinc-500 sm:block">إشارات شراء فقط · فريمات 1m و 5m</p>
+              <div className="flex items-center gap-1.5">
+                <h1 className="font-display text-base font-extrabold leading-tight tracking-tight text-white sm:text-lg">
+                  {branding.appName}
+                </h1>
+                {isLocked && (
+                  <span className="flex items-center gap-0.5 rounded border border-amber-500/40 bg-amber-500/15 px-1 py-0.5 text-[9px] font-bold text-amber-300" title="وضع القفل مفعّل">
+                    <Lock size={9} /> مقفل
+                  </span>
+                )}
+              </div>
+              <p className="hidden text-[10px] leading-tight text-zinc-500 sm:block">نظام رصد واقتناص الصفقات اللحظي</p>
             </div>
           </div>
 
@@ -304,14 +350,18 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
               {EXCHANGE_LIST.map((ex) => (
                 <button
                   key={ex.id}
+                  disabled={isLocked}
                   onClick={() => {
+                    if (isLocked) return
                     if (exchanges.includes(ex.id)) {
                       if (exchanges.length > 1) setExchanges(exchanges.filter((e) => e !== ex.id))
                     } else {
                       setExchanges([...exchanges, ex.id])
                     }
                   }}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold transition-colors sm:flex-none ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold transition-colors sm:flex-none disabled:cursor-not-allowed ${
+                    isLocked ? 'opacity-80' : ''
+                  } ${
                     exchanges.includes(ex.id)
                       ? 'bg-[#00d9a3] text-black'
                       : 'text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200'
@@ -333,7 +383,9 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                 return (
                   <button
                     key={m.id}
+                    disabled={isLocked}
                     onClick={() => {
+                      if (isLocked) return
                       const cur = markets ?? [market]
                       if (cur.includes(m.id)) {
                         if (cur.length > 1) setMarkets(cur.filter((x) => x !== m.id))
@@ -341,7 +393,9 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                         setMarkets([...cur, m.id])
                       }
                     }}
-                    className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed ${
+                      isLocked ? 'opacity-80' : ''
+                    } ${
                       active
                         ? m.id === 'futures'
                           ? 'bg-purple-500/20 text-purple-300 shadow-[inset_0_0_0_1px_rgba(168,85,247,0.5)]'
@@ -367,9 +421,13 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
 
             {/* master power: full start/stop of the server-side scanner */}
             <button
-              onClick={() => (running ? stopScanner() : startScanner())}
-              title={running ? 'إيقاف السكانر تماماً' : 'تشغيل السكانر'}
-              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-2 text-xs font-bold transition-colors sm:py-2 ${
+              disabled={isLocked}
+              onClick={() => {
+                if (isLocked) return
+                running ? stopScanner() : startScanner()
+              }}
+              title={isLocked ? 'القفل مفعّل — يرجى إلغاء القفل للتحكم بالسكانر' : running ? 'إيقاف السكانر تماماً' : 'تشغيل السكانر'}
+              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:py-2 ${
                 running
                   ? 'border-[#00d9a3]/40 bg-[#00d9a3]/10 text-[#00d9a3] hover:bg-[#ff4d4d]/10 hover:text-[#ff4d4d] hover:border-[#ff4d4d]/40'
                   : 'border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:border-[#00d9a3]/40 hover:text-[#00d9a3]'
@@ -389,6 +447,20 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
               }`}
             >
               {settings.sound ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            </button>
+
+            {/* Lock Mode Button */}
+            <button
+              onClick={toggleLock}
+              title={isLocked ? 'القفل مفعّل: التعديلات ممنوعة (اضغط لإلغاء القفل)' : 'قفل التعديلات: منع تغيير المنصات والفلاتر'}
+              className={`flex items-center gap-1.5 rounded-md border p-2 text-xs font-semibold transition-all sm:px-2.5 sm:py-2 ${
+                isLocked
+                  ? 'border-amber-500/60 bg-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(245,197,24,0.25)] ring-1 ring-amber-500/40'
+                  : 'border-zinc-800 text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              {isLocked ? <Lock size={15} /> : <Unlock size={15} />}
+              <span className="hidden sm:inline">{isLocked ? 'مقفل' : 'قفل'}</span>
             </button>
 
             {/* Filters modal */}
@@ -421,6 +493,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                   onChange={handleFilterChange}
                   onReset={handleResetFilters}
                   onClose={() => setShowFilters(false)}
+                  isLocked={isLocked}
                 />
               )}
             </div>
@@ -441,7 +514,14 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                 <Settings2 size={15} />
               </button>
               {showSettings && (
-                <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setShowSettings(false)} />
+                <SettingsPanel
+                  settings={settings}
+                  onChange={setSettings}
+                  onClose={() => setShowSettings(false)}
+                  isLocked={isLocked}
+                  branding={branding}
+                  onBrandingChange={handleBrandingChange}
+                />
               )}
             </div>
 
