@@ -151,6 +151,7 @@ class ScannerEngine {
 
   private store = new Map<string, SymbolEntry>()
   private cooldown = new Map<string, number>()
+  private webhookCooldown = new Map<string, number>()
   private seeded = false
   private clients = new Set<SseClient>()
   private disposed = false
@@ -334,6 +335,7 @@ class ScannerEngine {
     this.connStalled = false
     this.store.clear()
     this.cooldown.clear()
+    this.webhookCooldown.clear()
     this.seeded = false
     this.broadcast('snapshot', this.snapshot())
 
@@ -543,17 +545,20 @@ class ScannerEngine {
 
     // alerts with per-symbol cooldown
     const now = Date.now()
+    const cooldownMs = Math.max(1, s.cooldownMin ?? 5) * 60_000
     const fresh: AlertItem[] = []
     for (const scan of out) {
       if (scan.strength === 'none') continue
+      const unifiedSymbol = `${scan.meta.base.toUpperCase()}USDT`
       const key = `${scan.meta.exchange}:${scan.meta.market}:${scan.meta.symbol}`
       const lastAlertAt = this.cooldown.get(key) ?? 0
       if (!this.seeded) {
         this.cooldown.set(key, now) // seed silently on first pass
         continue
       }
-      if (now - lastAlertAt < s.cooldownMin * 60_000) continue
-      const unifiedSymbol = `${scan.meta.base.toUpperCase()}USDT`
+      if (now - lastAlertAt < cooldownMs) continue
+      this.cooldown.set(key, now) // Record alert timestamp to prevent continuous sending
+
       fresh.push({
         id: `${key}-${now}`,
         symbol: unifiedSymbol,
@@ -574,7 +579,13 @@ class ScannerEngine {
       const hookReady = this.settings.webhookOn && /^https?:\/\//i.test(this.settings.webhookUrl.trim())
       void this.archiveAlerts(fresh, hookReady)
       if (hookReady) {
-        for (const a of fresh) void this.postWebhook(this.signalPayload(a, 'signal'))
+        for (const a of fresh) {
+          const lastHookAt = this.webhookCooldown.get(a.symbol) ?? 0
+          if (now - lastHookAt >= cooldownMs) {
+            this.webhookCooldown.set(a.symbol, now)
+            void this.postWebhook(this.signalPayload(a, 'signal'))
+          }
+        }
       }
     }
     this.seeded = true
