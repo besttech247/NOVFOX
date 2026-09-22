@@ -413,9 +413,23 @@ export function SignalTable({
                     </div>
                   </td>
 
-                  {/* السعر */}
+                  {/* السعر ونسبة التغير من سعر الافتتاح */}
                   <td className="px-3 py-1.5">
-                    <Num v={fmtPrice(s.meta.price)} className="text-zinc-100" />
+                    <div className="flex flex-col leading-tight">
+                      <Num v={fmtPrice(s.meta.price)} className="font-semibold text-zinc-100" />
+                      <span
+                        dir="ltr"
+                        className={`font-num text-[10px] font-medium tabular-nums ${
+                          s.meta.change24h == null
+                            ? 'text-zinc-500'
+                            : s.meta.change24h >= 0
+                              ? 'text-[#00d9a3]'
+                              : 'text-[#ff4d4d]'
+                        }`}
+                      >
+                        {fmtPct(s.meta.change24h)}
+                      </span>
+                    </div>
                   </td>
 
                   {/* المخطط (Sparkline) - العمود الرابع مكبر */}
@@ -624,6 +638,18 @@ export function SignalTable({
                                     <span className="block text-[8px] text-zinc-500">السعر اللحظي</span>
                                     <span className="font-num font-semibold text-zinc-100" dir="ltr">
                                       {fmtPrice(sub.meta.price)}
+                                    </span>
+                                    <span
+                                      className={`block font-num text-[9px] font-medium tabular-nums ${
+                                        sub.meta.change24h == null
+                                          ? 'text-zinc-500'
+                                          : sub.meta.change24h >= 0
+                                            ? 'text-[#00d9a3]'
+                                            : 'text-[#ff4d4d]'
+                                      }`}
+                                      dir="ltr"
+                                    >
+                                      {fmtPct(sub.meta.change24h)}
                                     </span>
                                   </div>
                                   <div>
