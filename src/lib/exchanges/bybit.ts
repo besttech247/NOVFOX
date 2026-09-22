@@ -3,7 +3,7 @@ import { EXCLUDED_BASES, fetchJson, withReconnect, type ExchangeAdapter, type Fu
 
 const REST = 'https://api.bybit.com'
 
-const TF_MAP: Record<Timeframe, string> = { '1m': '1', '5m': '5' }
+const TF_MAP: Record<Timeframe, string> = { '1m': '1', '3m': '3', '5m': '5' }
 
 interface BybitTicker {
   symbol: string
@@ -145,7 +145,7 @@ function makeBybit(market: MarketType): ExchangeAdapter {
               if (!parsed.topic || !parsed.data) return
               const parts = parsed.topic.split('.')
               if (parts[0] !== 'kline') return
-              const interval = (parts[1] === '1' ? '1m' : '5m') as Timeframe
+              const interval = (parts[1] === '1' ? '1m' : parts[1] === '3' ? '3m' : '5m') as Timeframe
               const symbol = parts[2]
               for (const k of parsed.data) {
                 onKline({

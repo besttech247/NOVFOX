@@ -6,7 +6,7 @@ function makeOkx(market: MarketType): ExchangeAdapter {
   const REST = 'https://www.okx.com'
   const instType = isF ? 'SWAP' : 'SPOT'
 
-  const mapInterval = (i: Timeframe) => (i === '1m' ? '1m' : '5m')
+  const mapInterval = (i: Timeframe) => (i === '1m' ? '1m' : i === '3m' ? '3m' : '5m')
 
   const parseKlines = (raw: string[][]): Candle[] =>
     raw.map((k) => ({
@@ -102,7 +102,7 @@ function makeOkx(market: MarketType): ExchangeAdapter {
               const k = data[0]
               onKline({
                 symbol: arg.instId,
-                interval: arg.channel === 'candle1m' ? '1m' : '5m',
+                interval: arg.channel === 'candle1m' ? '1m' : arg.channel === 'candle3m' ? '3m' : '5m',
                 candle: {
                   t: parseInt(k[0]),
                   o: parseFloat(k[1]),

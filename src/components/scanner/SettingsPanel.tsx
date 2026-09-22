@@ -304,7 +304,7 @@ export function SettingsPanel({
 
         <Row label="الفريم الرئيسي للإشارات">
           <div className="flex overflow-hidden rounded border border-zinc-800" dir="ltr">
-            {(['1m', '5m'] as Timeframe[]).map((tf) => (
+            {(['1m', '3m', '5m'] as Timeframe[]).map((tf) => (
               <button
                 key={tf}
                 disabled={isLocked}

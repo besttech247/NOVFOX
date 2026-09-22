@@ -28,6 +28,7 @@ import { insertSignals, kvGet, kvSet, purgeOldSignals } from './db'
 interface SymbolEntry {
   meta: SymbolMeta
   c1: Candle[]
+  c3: Candle[]
   c5: Candle[]
   oi: Array<{ t: number; v: number }>
   openDaily?: number | null
@@ -93,8 +94,8 @@ function demoCandles(seed: number, n: number, stepMs: number, pattern: 'pump' | 
 
 /** live-evolving demo: every tick mutates the last candle and occasionally closes it */
 function demoAdvance(entry: SymbolEntry, rnd: () => number) {
-  for (const list of [entry.c1, entry.c5]) {
-    const stepMs = list === entry.c1 ? 60_000 : 300_000
+  for (const list of [entry.c1, entry.c3, entry.c5]) {
+    const stepMs = list === entry.c1 ? 60_000 : list === entry.c3 ? 180_000 : 300_000
     const last = list[list.length - 1]
     if (!last) return
     if (Date.now() - last.t >= stepMs) {
@@ -371,6 +372,7 @@ class ScannerEngine {
                 this.store.set(`${exch}:${mkt}:${meta.symbol}`, {
                   meta,
                   c1: [],
+                  c3: [],
                   c5: [],
                   oi: [],
                   openDaily: m.openDaily ?? null,
@@ -395,13 +397,15 @@ class ScannerEngine {
               // throttle history fetching to avoid IP bans
               await mapPool(top, 3, async (m) => {
                 try {
-                  const [c1, c5] = await Promise.all([
+                  const [c1, c3, c5] = await Promise.all([
                     adapter.fetchKlines(m.symbol, '1m', KLINE_LIMIT),
+                    adapter.fetchKlines(m.symbol, '3m', KLINE_LIMIT),
                     adapter.fetchKlines(m.symbol, '5m', KLINE_LIMIT),
                   ])
                   const entry = this.store.get(`${exch}:${mkt}:${m.symbol}`)
                   if (entry) {
                     entry.c1 = c1
+                    entry.c3 = c3
                     entry.c5 = c5
                     if (!entry.openDaily && c5.length > 0) {
                       const midnightUtc = new Date().setUTCHours(0, 0, 0, 0)
@@ -421,11 +425,11 @@ class ScannerEngine {
 
               const stopFn = adapter.subscribe(
                 top.map((m) => m.symbol),
-                ['1m', '5m'],
+                ['1m', '3m', '5m'],
                 (ev) => {
                   const entry = this.store.get(`${exch}:${mkt}:${ev.symbol}`)
                   if (!entry) return
-                  upsertCandle(ev.interval === '1m' ? entry.c1 : entry.c5, ev.candle)
+                  upsertCandle(ev.interval === '1m' ? entry.c1 : ev.interval === '3m' ? entry.c3 : entry.c5, ev.candle)
                   if (!entry.openDaily && entry.c5.length > 0) {
                     const midnightUtc = new Date().setUTCHours(0, 0, 0, 0)
                     const todayCandles = entry.c5.filter((c) => c.t >= midnightUtc)
@@ -476,6 +480,7 @@ class ScannerEngine {
     DEMO_BASES.slice(0, this.settings.symbolCount).forEach((base, idx) => {
       const pattern = idx % 5 === 0 ? 'pump' : idx % 3 === 0 ? 'dump' : 'flat'
       const c1 = demoCandles(idx * 7 + 1, KLINE_LIMIT, 60_000, pattern)
+      const c3 = demoCandles(idx * 11 + 3, KLINE_LIMIT, 180_000, pattern)
       const c5 = demoCandles(idx * 13 + 5, KLINE_LIMIT, 300_000, pattern)
       const last = c1[c1.length - 1].c
       this.store.set(`${base}USDT`, {
@@ -490,6 +495,7 @@ class ScannerEngine {
           fundingRate: (((idx * 13) % 20) - 10) / 10000,
         },
         c1,
+        c3,
         c5,
         oi: [],
       })
@@ -582,8 +588,8 @@ class ScannerEngine {
         openDaily,
         changeDaily,
       }
-      const primary = s.primaryTf === '1m' ? entry.c1 : entry.c5
-      const trend = s.primaryTf === '1m' ? entry.c5 : []
+      const primary = s.primaryTf === '1m' ? entry.c1 : s.primaryTf === '3m' ? entry.c3 : entry.c5
+      const trend = s.primaryTf === '1m' ? entry.c5 : s.primaryTf === '3m' ? entry.c5 : []
       const extras = {
         fundingRate: entry.meta.fundingRate ?? null,
         oiChangePct: oiChangePct(entry.oi, Date.now()),

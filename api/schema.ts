@@ -16,7 +16,7 @@ export const signals = pgTable(
     base: text('base').notNull(),
     exchange: text('exchange').notNull(),
     market: text('market').notNull(), // spot | futures
-    timeframe: text('timeframe').notNull(), // 1m | 5m
+    timeframe: text('timeframe').notNull(), // 1m | 3m | 5m
     strength: text('strength').notNull(), // strong | normal
     score: integer('score').notNull(),
     price: real('price').notNull(),

@@ -119,7 +119,7 @@ api.get('/history/signals', async (c) => {
     limit,
     base: baseRaw || undefined,
     strength: strengthRaw === 'strong' || strengthRaw === 'normal' ? strengthRaw : undefined,
-    timeframe: tfRaw === '1m' || tfRaw === '5m' ? tfRaw : undefined,
+    timeframe: tfRaw === '1m' || tfRaw === '3m' || tfRaw === '5m' ? tfRaw : undefined,
   })
   return c.json({ signals: rows, dbAvailable: true })
 })

@@ -136,7 +136,7 @@ export interface HistoryQuery {
   hours: number // lookback window, clamped by caller to <= 72
   base?: string
   strength?: 'strong' | 'normal'
-  timeframe?: '1m' | '5m'
+  timeframe?: '1m' | '3m' | '5m'
   limit: number
 }
 

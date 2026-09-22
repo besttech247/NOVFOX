@@ -160,7 +160,7 @@ export function HistoryView({ icons = {} }: { icons?: Record<string, string> }) 
   const [dbOff, setDbOff] = useState(false)
   const [hours, setHours] = useState<number>(24)
   const [strength, setStrength] = useState<'' | 'strong' | 'normal'>('')
-  const [tf, setTf] = useState<'' | '1m' | '5m'>('')
+  const [tf, setTf] = useState<'' | '1m' | '3m' | '5m'>('')
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('time')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -329,6 +329,7 @@ export function HistoryView({ icons = {} }: { icons?: Record<string, string> }) 
             [
               { id: '', label: 'كل الفريمات' },
               { id: '1m', label: '1m' },
+              { id: '3m', label: '3m' },
               { id: '5m', label: '5m' },
             ] as const
           ).map((o) => (

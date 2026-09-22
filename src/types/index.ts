@@ -1,5 +1,5 @@
 export type ExchangeId = 'binance' | 'bybit' | 'kucoin' | 'okx' | 'kraken' | 'coinbase' | 'hyperliquid'
-export type Timeframe = '1m' | '5m'
+export type Timeframe = '1m' | '3m' | '5m'
 export type MarketType = 'spot' | 'futures'
 
 export interface Candle {

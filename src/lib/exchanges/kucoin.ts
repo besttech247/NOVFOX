@@ -4,8 +4,8 @@ import { EXCLUDED_BASES, fetchJson, mapPool, withReconnect, type ExchangeAdapter
 const REST_SPOT = 'https://api.kucoin.com'
 const REST_FUTURES = 'https://api-futures.kucoin.com'
 
-const TF_MAP: Record<Timeframe, string> = { '1m': '1min', '5m': '5min' }
-const TF_GRANULARITY: Record<Timeframe, number> = { '1m': 1, '5m': 5 }
+const TF_MAP: Record<Timeframe, string> = { '1m': '1min', '3m': '3min', '5m': '5min' }
+const TF_GRANULARITY: Record<Timeframe, number> = { '1m': 1, '3m': 3, '5m': 5 }
 
 interface KucoinTicker {
   symbol: string // BTC-USDT
@@ -157,7 +157,7 @@ function makeKucoin(market: MarketType): ExchangeAdapter {
           .reverse()
       }
 
-      const startAt = Math.floor(endTimeMs / 1000) - limit * (interval === '1m' ? 60 : 300)
+      const startAt = Math.floor(endTimeMs / 1000) - limit * (interval === '1m' ? 60 : interval === '3m' ? 180 : 300)
       const endAt = Math.floor(endTimeMs / 1000)
       const res = await fetchJson<{ data: string[][] }>(
         `${REST}/api/v1/market/candles?type=${TF_MAP[interval]}&symbol=${symbol}&startAt=${startAt}&endAt=${endAt}`,
@@ -261,7 +261,7 @@ function makeKucoin(market: MarketType): ExchangeAdapter {
               const k = parsed.data.candles
               onKline({
                 symbol,
-                interval: tf === '1min' ? '1m' : '5m',
+                interval: tf === '1min' ? '1m' : tf === '3min' ? '3m' : '5m',
                 candle: {
                   t: parseInt(k[0], 10) * 1000,
                   o: parseFloat(k[1]),

@@ -70,10 +70,10 @@ const WARMUP = 60
 async function fetchHistory(
   adapter: ExchangeAdapter,
   symbol: string,
-  interval: '1m' | '5m',
+  interval: '1m' | '3m' | '5m',
   totalCandles: number,
 ): Promise<Candle[]> {
-  const stepMs = interval === '1m' ? 60_000 : 300_000
+  const stepMs = interval === '1m' ? 60_000 : interval === '3m' ? 180_000 : 300_000
   const perReq = 1000
   const out: Candle[] = []
   let end = Date.now()
