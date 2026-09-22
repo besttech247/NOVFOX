@@ -103,6 +103,26 @@ function makeBybit(market: MarketType): ExchangeAdapter {
         }
       : {}),
 
+    fetchDailyOpen: async (symbols: string[]): Promise<Map<string, number>> => {
+      const out = new Map<string, number>()
+      await mapPool(symbols, 3, async (sym) => {
+        try {
+          const res = await fetchJson<{ result: { list: string[][] } }>(
+            `${REST}/v5/market/kline?category=${category}&symbol=${sym}&interval=D&limit=1`,
+          )
+          const k = res.result?.list?.[0]
+          if (k && k[1]) {
+            const o = parseFloat(k[1])
+            if (isFinite(o) && o > 0) out.set(sym, o)
+          }
+          await new Promise((r) => setTimeout(r, 50))
+        } catch {
+          /* ignore */
+        }
+      })
+      return out
+    },
+
     subscribe(symbols, intervals, onKline, onStatus) {
       let stopped = false
       let pingTimer: ReturnType<typeof setInterval> | null = null

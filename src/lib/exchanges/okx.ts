@@ -30,12 +30,19 @@ function makeOkx(market: MarketType): ExchangeAdapter {
         .filter((t) => t.instId.endsWith(isF ? '-USDT-SWAP' : '-USDT'))
         .map((t) => {
           const base = t.instId.split('-')[0]
+          const sod = parseFloat(t.sodUtc0)
+          const open24h = parseFloat(t.open24h)
+          const last = parseFloat(t.last)
+          const hasSod = isFinite(sod) && sod > 0
+          const has24 = isFinite(open24h) && open24h > 0
           return {
             symbol: t.instId,
             base,
             quoteVol24h: parseFloat(t.volCcy24h),
-            price: parseFloat(t.last),
-            change24h: ((parseFloat(t.last) - parseFloat(t.sodUtc0)) / parseFloat(t.sodUtc0)) * 100,
+            price: last,
+            change24h: has24 ? ((last - open24h) / open24h) * 100 : (hasSod ? ((last - sod) / sod) * 100 : 0),
+            openDaily: hasSod ? sod : null,
+            changeDaily: hasSod ? ((last - sod) / sod) * 100 : null,
           }
         })
         .filter((m) => !EXCLUDED_BASES.has(m.base) && isFinite(m.price) && m.price > 0)

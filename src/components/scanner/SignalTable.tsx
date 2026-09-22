@@ -413,22 +413,32 @@ export function SignalTable({
                     </div>
                   </td>
 
-                  {/* السعر ونسبة التغير من سعر الافتتاح */}
+                  {/* السعر ونسبة التغير من سعر الافتتاح اليومي */}
                   <td className="px-3 py-1.5">
                     <div className="flex flex-col leading-tight">
                       <Num v={fmtPrice(s.meta.price)} className="font-semibold text-zinc-100" />
-                      <span
-                        dir="ltr"
-                        className={`font-num text-[10px] font-medium tabular-nums ${
-                          s.meta.change24h == null
-                            ? 'text-zinc-500'
-                            : s.meta.change24h >= 0
-                              ? 'text-[#00d9a3]'
-                              : 'text-[#ff4d4d]'
-                        }`}
-                      >
-                        {fmtPct(s.meta.change24h)}
-                      </span>
+                      {(() => {
+                        const dailyPct = s.meta.changeDaily ?? s.meta.change24h
+                        return (
+                          <span
+                            dir="ltr"
+                            title={
+                              s.meta.openDaily != null
+                                ? `افتتاح اليوم (00:00 UTC): ${fmtPrice(s.meta.openDaily)}`
+                                : 'نسبة التغير من الافتتاح اليومي'
+                            }
+                            className={`font-num text-[10px] font-medium tabular-nums ${
+                              dailyPct == null
+                                ? 'text-zinc-500'
+                                : dailyPct >= 0
+                                  ? 'text-[#00d9a3]'
+                                  : 'text-[#ff4d4d]'
+                            }`}
+                          >
+                            {fmtPct(dailyPct)}
+                          </span>
+                        )
+                      })()}
                     </div>
                   </td>
 
@@ -639,18 +649,28 @@ export function SignalTable({
                                     <span className="font-num font-semibold text-zinc-100" dir="ltr">
                                       {fmtPrice(sub.meta.price)}
                                     </span>
-                                    <span
-                                      className={`block font-num text-[9px] font-medium tabular-nums ${
-                                        sub.meta.change24h == null
-                                          ? 'text-zinc-500'
-                                          : sub.meta.change24h >= 0
-                                            ? 'text-[#00d9a3]'
-                                            : 'text-[#ff4d4d]'
-                                      }`}
-                                      dir="ltr"
-                                    >
-                                      {fmtPct(sub.meta.change24h)}
-                                    </span>
+                                    {(() => {
+                                      const subDailyPct = sub.meta.changeDaily ?? sub.meta.change24h
+                                      return (
+                                        <span
+                                          className={`block font-num text-[9px] font-medium tabular-nums ${
+                                            subDailyPct == null
+                                              ? 'text-zinc-500'
+                                              : subDailyPct >= 0
+                                                ? 'text-[#00d9a3]'
+                                                : 'text-[#ff4d4d]'
+                                          }`}
+                                          dir="ltr"
+                                          title={
+                                            sub.meta.openDaily != null
+                                              ? `افتتاح اليوم (00:00 UTC): ${fmtPrice(sub.meta.openDaily)}`
+                                              : 'نسبة التغير من الافتتاح اليومي'
+                                          }
+                                        >
+                                          {fmtPct(subDailyPct)}
+                                        </span>
+                                      )
+                                    })()}
                                   </div>
                                   <div>
                                     <span className="block text-[8px] text-zinc-500">التغير 24س</span>

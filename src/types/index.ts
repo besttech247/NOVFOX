@@ -20,6 +20,10 @@ export interface SymbolMeta {
   quoteVol24h: number // in USD
   price: number
   change24h: number // percent
+  /** Daily Open price at 00:00 UTC */
+  openDaily?: number | null
+  /** Percent change from Daily Open (00:00 UTC) */
+  changeDaily?: number | null
   /** futures-only metrics, in percent units (0.01 = 0.01%) */
   fundingRate?: number | null
   /** futures-only: open-interest change over ~15min, percent */

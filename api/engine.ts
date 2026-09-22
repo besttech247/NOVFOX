@@ -30,6 +30,7 @@ interface SymbolEntry {
   c1: Candle[]
   c5: Candle[]
   oi: Array<{ t: number; v: number }>
+  openDaily?: number | null
 }
 
 export type { EngineSnapshot }
@@ -367,7 +368,28 @@ class ScannerEngine {
 
               for (const m of top) {
                 const meta: SymbolMeta = { ...m, exchange: exch, market: mkt }
-                this.store.set(`${exch}:${mkt}:${meta.symbol}`, { meta, c1: [], c5: [], oi: [] })
+                this.store.set(`${exch}:${mkt}:${meta.symbol}`, {
+                  meta,
+                  c1: [],
+                  c5: [],
+                  oi: [],
+                  openDaily: m.openDaily ?? null,
+                })
+              }
+
+              if (adapter.fetchDailyOpen) {
+                adapter
+                  .fetchDailyOpen(top.map((m) => m.symbol))
+                  .then((dailyOpens) => {
+                    for (const [sym, o] of dailyOpens) {
+                      const entry = this.store.get(`${exch}:${mkt}:${sym}`)
+                      if (entry) {
+                        entry.openDaily = o
+                        entry.meta.openDaily = o
+                      }
+                    }
+                  })
+                  .catch(() => undefined)
               }
 
               // throttle history fetching to avoid IP bans
@@ -381,6 +403,14 @@ class ScannerEngine {
                   if (entry) {
                     entry.c1 = c1
                     entry.c5 = c5
+                    if (!entry.openDaily && c5.length > 0) {
+                      const midnightUtc = new Date().setUTCHours(0, 0, 0, 0)
+                      const todayCandles = c5.filter((c) => c.t >= midnightUtc)
+                      if (todayCandles.length > 0) {
+                        entry.openDaily = todayCandles[0].o
+                        entry.meta.openDaily = todayCandles[0].o
+                      }
+                    }
                   }
                   await new Promise((r) => setTimeout(r, 40))
                 } catch {
@@ -396,6 +426,14 @@ class ScannerEngine {
                   const entry = this.store.get(`${exch}:${mkt}:${ev.symbol}`)
                   if (!entry) return
                   upsertCandle(ev.interval === '1m' ? entry.c1 : entry.c5, ev.candle)
+                  if (!entry.openDaily && entry.c5.length > 0) {
+                    const midnightUtc = new Date().setUTCHours(0, 0, 0, 0)
+                    const todayCandles = entry.c5.filter((c) => c.t >= midnightUtc)
+                    if (todayCandles.length > 0) {
+                      entry.openDaily = todayCandles[0].o
+                      entry.meta.openDaily = todayCandles[0].o
+                    }
+                  }
                 },
                 (s) => {
                   if (isStale()) return
@@ -473,7 +511,14 @@ class ScannerEngine {
             for (const m of fresh) {
               const entry = this.store.get(`${exch}:${mkt}:${m.symbol}`)
               if (entry) {
-                entry.meta = { ...entry.meta, quoteVol24h: m.quoteVol24h, change24h: m.change24h }
+                entry.meta = {
+                  ...entry.meta,
+                  quoteVol24h: m.quoteVol24h,
+                  change24h: m.change24h,
+                  ...(m.openDaily != null ? { openDaily: m.openDaily } : {}),
+                  ...(m.changeDaily != null ? { changeDaily: m.changeDaily } : {}),
+                }
+                if (m.openDaily != null) entry.openDaily = m.openDaily
               }
             }
           })
@@ -525,7 +570,18 @@ class ScannerEngine {
       if (s.hideLending && isLendingToken(entry.meta.base, entry.meta.symbol)) continue
       if (s.hideGambling && isGamblingToken(entry.meta.base, entry.meta.symbol)) continue
       const lastPrice = entry.c1[entry.c1.length - 1]?.c ?? entry.meta.price
-      const meta = { ...entry.meta, price: lastPrice }
+      const openDaily = entry.openDaily ?? entry.meta.openDaily ?? null
+      const changeDaily =
+        openDaily != null && openDaily > 0
+          ? ((lastPrice - openDaily) / openDaily) * 100
+          : (entry.meta.changeDaily ?? null)
+
+      const meta: SymbolMeta = {
+        ...entry.meta,
+        price: lastPrice,
+        openDaily,
+        changeDaily,
+      }
       const primary = s.primaryTf === '1m' ? entry.c1 : entry.c5
       const trend = s.primaryTf === '1m' ? entry.c5 : []
       const extras = {
@@ -533,7 +589,13 @@ class ScannerEngine {
         oiChangePct: oiChangePct(entry.oi, Date.now()),
       }
       const scan = evaluateSymbol(meta, primary, trend, s, extras)
-      scan.meta = { ...scan.meta, fundingRate: entry.meta.fundingRate ?? null, oiChangePct: extras.oiChangePct }
+      scan.meta = {
+        ...scan.meta,
+        openDaily,
+        changeDaily,
+        fundingRate: entry.meta.fundingRate ?? null,
+        oiChangePct: extras.oiChangePct,
+      }
       out.push(scan)
     }
     out.sort((a, b) => {

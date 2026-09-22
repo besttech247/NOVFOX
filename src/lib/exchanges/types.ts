@@ -21,6 +21,8 @@ export interface ExchangeAdapter {
   fetchKlinesBefore(symbol: string, interval: Timeframe, limit: number, endTimeMs: number): Promise<Candle[]>
   /** futures adapters only: funding + open interest snapshot */
   fetchFuturesMetrics?: (symbols: string[]) => Promise<Map<string, FuturesMetrics>>
+  /** optional: bulk or per-symbol daily open prices (00:00 UTC) */
+  fetchDailyOpen?: (symbols: string[]) => Promise<Map<string, number>>
   subscribe(
     symbols: string[],
     intervals: Timeframe[],

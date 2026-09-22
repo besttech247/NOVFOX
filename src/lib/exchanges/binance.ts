@@ -114,6 +114,39 @@ function makeBinance(market: MarketType): ExchangeAdapter {
         }
       : {}),
 
+    fetchDailyOpen: async (symbols: string[]): Promise<Map<string, number>> => {
+      const out = new Map<string, number>()
+      if (!isF) {
+        for (let i = 0; i < symbols.length; i += 50) {
+          const chunk = symbols.slice(i, i + 50)
+          try {
+            const data = await bfetch<Array<{ symbol: string; openPrice: string }>>(
+              `/api/v3/ticker/tradingDay?symbols=${encodeURIComponent(JSON.stringify(chunk))}`,
+            )
+            for (const item of data) {
+              const o = parseFloat(item.openPrice)
+              if (isFinite(o) && o > 0) out.set(item.symbol, o)
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+      } else {
+        await mapPool(symbols, 4, async (sym) => {
+          try {
+            const data = await bfetch<unknown[][]>(`/fapi/v1/klines?symbol=${sym}&interval=1d&limit=1`)
+            if (data && data[0] && data[0][1]) {
+              const o = parseFloat(data[0][1] as string)
+              if (isFinite(o) && o > 0) out.set(sym, o)
+            }
+          } catch {
+            /* ignore */
+          }
+        })
+      }
+      return out
+    },
+
     subscribe(symbols, intervals, onKline, onStatus) {
       let stopped = false
       const streams = symbols
