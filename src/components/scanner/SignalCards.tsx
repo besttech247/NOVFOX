@@ -5,6 +5,7 @@ import { getTradingViewUrl } from '@/lib/tradingview'
 import { Sparkline } from './Sparkline'
 import { CoinIcon } from '@/components/CoinIcon'
 import { ExchangeIcon } from '@/components/ExchangeIcon'
+import { CopyButton } from '@/components/CopyButton'
 import { useWebhookSend, WebhookSendButton, type SendState } from './SignalTable'
 import { ChevronDown, Flame, LogIn, TrendingUp, Zap } from 'lucide-react'
 
@@ -50,6 +51,7 @@ function Card({
           <div className="flex flex-col leading-tight">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold text-zinc-100">{s.meta.base}</span>
+              <CopyButton text={s.meta.base} size={11} />
 
               {/* Exchange Icon Only */}
               <ExchangeIcon exchange={s.meta.exchange} size={14} className="rounded-sm" />
@@ -129,10 +131,13 @@ function Card({
             {fmtPrice(s.meta.price)}
           </div>
           <div
-            className={`font-num text-xs tabular-nums ${s.meta.change24h >= 0 ? 'text-[#00d9a3]' : 'text-[#ff4d4d]'}`}
+            className={`font-num text-xs tabular-nums ${
+              (s.meta.changeDaily ?? s.meta.change24h) >= 0 ? 'text-[#00d9a3]' : 'text-[#ff4d4d]'
+            }`}
             dir="ltr"
+            title={s.meta.openDaily != null ? `افتتاح اليوم: ${fmtPrice(s.meta.openDaily)}` : 'نسبة التغير اليومي'}
           >
-            {fmtPct(s.meta.change24h)}
+            {fmtPct(s.meta.changeDaily ?? s.meta.change24h)}
           </div>
         </div>
 
@@ -221,33 +226,44 @@ function Card({
         </div>
       </div>
 
-      {/* Parts & Sparkline */}
-      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-zinc-900 pt-2">
-        <div className="flex flex-wrap items-center gap-1">
-          {s.parts
-            .filter((p) => p.points > 0)
-            .slice(0, 3)
-            .map((p) => (
-              <span key={p.key} className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] text-zinc-300">
-                {p.label}
-              </span>
-            ))}
-          {s.parts.some((p) => p.points < 0) && (
-            <span className="rounded bg-[#ff4d4d]/10 px-1.5 py-0.5 text-[10px] text-[#ff4d4d]">
-              {s.parts.find((p) => p.points < 0)?.label}
-            </span>
-          )}
-          {dim && s.filterReasons.length > 0 && (
-            <span className="rounded bg-zinc-800/50 px-1.5 py-0.5 text-[10px] text-zinc-500">{s.filterReasons[0]}</span>
-          )}
+      {/* Enlarged Chart (المخطط مكبر في نسخة الجوال) */}
+      <div className="mt-2.5 rounded-lg border border-zinc-800/80 bg-[#0a0b0e] p-2">
+        <div className="mb-1.5 flex items-center justify-between px-1 text-[10px] text-zinc-500">
+          <span className="font-medium text-zinc-400">مخطط الحركة اللحظية (VWAP + السعر)</span>
+          <span className="font-num text-[10px]">
+            {s.spark.length > 1 && s.spark[s.spark.length - 1] >= s.spark[0] ? (
+              <span className="font-semibold text-[#00d9a3]">▲ صاعد</span>
+            ) : (
+              <span className="font-semibold text-[#ff4d4d]">▼ هابط</span>
+            )}
+          </span>
         </div>
         <Sparkline
           data={s.spark}
           vwap={s.vwapSpark}
-          width={90}
-          height={30}
+          height={55}
+          responsive={true}
           positive={s.spark.length > 1 && s.spark[s.spark.length - 1] >= s.spark[0]}
         />
+      </div>
+
+      {/* Parts & Signals Tags */}
+      <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-zinc-900 pt-2">
+        {s.parts
+          .filter((p) => p.points > 0)
+          .map((p) => (
+            <span key={p.key} className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] text-zinc-300">
+              {p.label}
+            </span>
+          ))}
+        {s.parts.some((p) => p.points < 0) && (
+          <span className="rounded bg-[#ff4d4d]/10 px-1.5 py-0.5 text-[10px] text-[#ff4d4d]">
+            {s.parts.find((p) => p.points < 0)?.label}
+          </span>
+        )}
+        {dim && s.filterReasons.length > 0 && (
+          <span className="rounded bg-zinc-800/50 px-1.5 py-0.5 text-[10px] text-zinc-500">{s.filterReasons[0]}</span>
+        )}
       </div>
 
       {/* Accordion Drawer for Mobile (النافذة المطوية للجوال) */}
@@ -269,6 +285,7 @@ function Card({
                     <span className="text-[9px] text-zinc-500 font-bold">#{idx + 1}</span>
                     <ExchangeIcon exchange={sub.meta.exchange} size={14} className="rounded-sm" />
                     <span className="font-bold text-zinc-200 capitalize text-[11px]">{sub.meta.exchange}</span>
+                    <CopyButton text={sub.meta.base} size={9} />
                     <span
                       className={`rounded px-1 text-[8px] font-bold border ${
                         isSubFutures

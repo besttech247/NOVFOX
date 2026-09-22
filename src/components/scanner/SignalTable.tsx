@@ -5,6 +5,7 @@ import { getTradingViewUrl } from '@/lib/tradingview'
 import { Sparkline } from './Sparkline'
 import { CoinIcon } from '@/components/CoinIcon'
 import { ExchangeIcon } from '@/components/ExchangeIcon'
+import { CopyButton } from '@/components/CopyButton'
 import {
   ArrowDown,
   ArrowUp,
@@ -330,6 +331,7 @@ export function SignalTable({
                       <div className="flex flex-col leading-tight">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-zinc-100">{s.meta.base}</span>
+                          <CopyButton text={s.meta.base} size={10} />
 
                           {/* Exchange Icon Only (No Text) */}
                           <ExchangeIcon
@@ -584,6 +586,7 @@ export function SignalTable({
                             <span className="text-xs font-bold text-zinc-200">
                               جميع أسواق ومنصات {g.base} ({g.items.length})
                             </span>
+                            <CopyButton text={g.base} size={11} />
                             <span className="text-[10px] text-zinc-500">
                               مرتبة تنازلياً حسب قوة الإشارة
                             </span>
