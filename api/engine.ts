@@ -553,10 +553,10 @@ class ScannerEngine {
         continue
       }
       if (now - lastAlertAt < s.cooldownMin * 60_000) continue
-      this.cooldown.set(key, now)
+      const unifiedSymbol = `${scan.meta.base.toUpperCase()}USDT`
       fresh.push({
         id: `${key}-${now}`,
-        symbol: scan.meta.symbol,
+        symbol: unifiedSymbol,
         base: scan.meta.base,
         exchange: scan.meta.exchange,
         market: scan.meta.market,
@@ -582,13 +582,13 @@ class ScannerEngine {
   }
 
   private async archiveAlerts(fresh: AlertItem[], webhookSent = false): Promise<void> {
-    const scansBySymbol = new Map(this.scans.map((sc) => [`${sc.meta.exchange}:${sc.meta.market}:${sc.meta.symbol}`, sc]))
+    const scansByBase = new Map(this.scans.map((sc) => [`${sc.meta.exchange}:${sc.meta.market}:${sc.meta.base.toUpperCase()}`, sc]))
     await insertSignals(
       fresh.map((a) => {
-        const sc = scansBySymbol.get(`${a.exchange}:${a.market ?? 'futures'}:${a.symbol}`)
+        const sc = scansByBase.get(`${a.exchange}:${a.market ?? 'futures'}:${a.base.toUpperCase()}`)
         return {
           id: a.id,
-          symbol: a.symbol,
+          symbol: `${a.base.toUpperCase()}USDT`,
           base: a.base,
           exchange: a.exchange,
           market: this.market,
@@ -615,10 +615,11 @@ class ScannerEngine {
     a: { symbol: string; base: string; exchange: ExchangeId; timeframe: string; strength: string; score: number; price: number; parts: string[]; time: number },
     event: 'signal' | 'manual' | 'test',
   ): Record<string, unknown> {
+    const unifiedSymbol = `${a.base.toUpperCase()}USDT`
     return {
       event,
-      symbol: a.symbol,
-      base: a.base,
+      symbol: unifiedSymbol,
+      base: a.base.toUpperCase(),
       exchange: a.exchange,
       market: this.market,
       timeframe: a.timeframe,
@@ -648,17 +649,31 @@ class ScannerEngine {
 
   /** settings "test" button — verifies the configured URL accepts POSTs */
   async testWebhook(): Promise<{ ok: boolean; status: number }> {
-    return this.postWebhook({ event: 'test', message: 'اختبار ويب هوك من سكانر السكالبنغ', time: Date.now() })
+    return this.postWebhook({
+      event: 'test',
+      symbol: 'WLDUSDT',
+      base: 'WLD',
+      message: 'اختبار ويب هوك من سكانر السكالبنغ NOVFOX',
+      time: Date.now(),
+    })
   }
 
   /** manual per-symbol send from the UI — works even when auto-send is off */
   async sendWebhookFor(symbol: string): Promise<{ ok: boolean; status: number } | 'not_found'> {
-    const scan = this.scans.find((s) => s.meta.symbol === symbol || s.meta.base === symbol.toUpperCase())
+    const cleanSym = symbol.trim().toUpperCase()
+    const cleanBase = cleanSym.replace(/[-_]SWAP$/i, '').replace(/[-_]PERP$/i, '').replace(/[-_]?USDT$/i, '')
+    const scan = this.scans.find(
+      (s) =>
+        s.meta.symbol.toUpperCase() === cleanSym ||
+        s.meta.base.toUpperCase() === cleanSym ||
+        s.meta.base.toUpperCase() === cleanBase ||
+        `${s.meta.base.toUpperCase()}USDT` === cleanSym
+    )
     if (!scan) return 'not_found'
     return this.postWebhook(
       this.signalPayload(
         {
-          symbol: scan.meta.symbol,
+          symbol: `${scan.meta.base.toUpperCase()}USDT`,
           base: scan.meta.base,
           exchange: scan.meta.exchange,
           timeframe: this.settings.primaryTf,

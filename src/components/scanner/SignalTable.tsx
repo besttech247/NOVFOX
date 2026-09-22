@@ -397,7 +397,7 @@ export function SignalTable({
                           </button>
                         )}
                         {webhookReady && onWebhookSend && (
-                          <WebhookSendButton symbol={s.meta.symbol} sendState={sendState} onSend={handleSend} />
+                          <WebhookSendButton symbol={`${s.meta.base.toUpperCase()}USDT`} sendState={sendState} onSend={handleSend} />
                         )}
                         <a
                           href={getTradingViewUrl(s.meta.exchange, s.meta.symbol, s.meta.base, s.meta.market)}

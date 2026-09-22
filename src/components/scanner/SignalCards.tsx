@@ -107,7 +107,7 @@ function Card({
           )}
 
           {webhookReady && sendState && onSend && (
-            <WebhookSendButton symbol={s.meta.symbol} sendState={sendState} onSend={onSend} />
+            <WebhookSendButton symbol={`${s.meta.base.toUpperCase()}USDT`} sendState={sendState} onSend={onSend} />
           )}
 
           <a

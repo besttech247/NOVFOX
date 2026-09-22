@@ -300,7 +300,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
 
   const handleEnter = (s: SymbolScan) => {
     journal.addEntry({
-      symbol: s.meta.symbol,
+      symbol: `${s.meta.base.toUpperCase()}USDT`,
       base: s.meta.base,
       exchange: s.meta.exchange,
       entryPrice: s.meta.price,
